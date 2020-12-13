@@ -32,11 +32,11 @@ This repository is for the TensorFlow2 implementation for vanilla GAN. This repo
 
     You can check that there are two csv files named `mnist_train.csv` and `mnist_test.csv`.
 
-3. **Modify the path for dataset in `config.py`.**
+3. **Modify the path for dataset in `config_GAN.py`.**
 
 4. **Modify the path for directory for saving model checkpoint.**
 
-5. **Execute training process by `train.py`.**
+5. **Execute training process by `train_GAN.py`.**
 
 ## Checking Results and Testing Generation
 The Jupyter notebook for checking results and testing the image generation is provided. Please check `result_plot.ipynb`.
@@ -88,11 +88,11 @@ This repository is for the TensorFlow2 implementation for VAE. This repository p
 
     You can check that there are two csv files named `mnist_train.csv` and `mnist_test.csv`.
 
-3. **Modify the path for dataset in `config.py`.**
+3. **Modify the path for dataset in `config_VAE.py`.**
 
 4. **Modify the path for directory for saving model checkpoint.**
 
-5. **Execute training process by `train.py`.**
+5. **Execute training process by `train_VAE.py`.**
 
 ## Checking Results and Testing Generation
 The Jupyter notebook for checking results and testing the image generation is provided. Please check `result_plot.ipynb`.
