@@ -41,16 +41,6 @@ This repository is for the TensorFlow2 implementation for vanilla GAN. This repo
 ## Checking Results and Testing Generation
 The Jupyter notebook for checking results and testing the image generation is provided. Please check `result_plot.ipynb`.
 
-## Results
-
-1. **Ploting the Generator and Discriminator Losses**
-
-    ![](/assets/img/README/README_2019-10-17-19-55-51.png)
-
-2. **Image Generation Results**
-
-    ![](/assets/img/README/README_2019-10-17-19-56-38.png)
-
 ## References
 - GAN: [Generative Adversarial Nets](http://papers.nips.cc/paper/5423-generative-adversarial-nets)
 
@@ -96,20 +86,6 @@ This repository is for the TensorFlow2 implementation for VAE. This repository p
 
 ## Checking Results and Testing Generation
 The Jupyter notebook for checking results and testing the image generation is provided. Please check `result_plot.ipynb`.
-
-## Results
-
-1. **Ploting the Encoder and Decoder Losses**
-
-    ![](/assets/img/README/README_2019-10-17-19-36-52.png)
-
-2. **Image Generation Results**
-
-    ![](/assets/img/README/README_2019-10-17-19-40-04.png)
-
-3. **Plotting the Latent Distribution**
-
-    ![](/assets/img/README/README_2019-10-17-19-41-35.png)
 
 ## References
 - VAE Tutorial: [Tutorial on Variational Autoencoders](https://arxiv.org/abs/1606.05908)
