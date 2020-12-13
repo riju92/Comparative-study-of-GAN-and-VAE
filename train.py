@@ -7,15 +7,7 @@ import tensorflow as tf
 import config as conf
 
 from data.mnist import Mnist
-from models.vanilla_gan import VanillaGAN
-
-
-def feature_normalize(features):
-    return (features - 0.5) / 0.5
-
-
-def feature_denormalize(features):
-    return (features + 1) / 2
+from models.vae import VAE
 
 
 def main():
@@ -32,8 +24,7 @@ def main():
 
     loader = Mnist()
 
-    features = np.vstack([loader.train_features, loader.test_features])
-    features = feature_normalize(features).astype(np.float32)
+    features = np.vstack([loader.train_features, loader.test_features]).astype(np.float32)
 
     num_sets = loader.num_train_sets + loader.num_test_sets
     
@@ -45,75 +36,75 @@ def main():
     batch_size = conf.BATCH_SIZE
     num_epochs = conf.NUM_EPOCHS
 
-    model = VanillaGAN(feature_depth)
+    model = VAE(latent_depth, feature_depth)
 
-    generator_opt = tf.keras.optimizers.Adam(learning_rate=0.0002)
-    discriminator_opt = tf.keras.optimizers.Adam(learning_rate=0.0002)
+    opt = tf.keras.optimizers.Adam()
 
     @tf.function
-    def train_step(x, z):
-        with tf.GradientTape() as generator_tape, tf.GradientTape() as discriminator_tape:
-            generator_loss = model.generator_loss(z)
-            discriminator_loss = model.discriminator_loss(x, z)
+    def train_step(x, eps):
+        with tf.GradientTape() as tape:
+            mu, log_sigma = model.encode(x, training=True)
+            z = model.reparam(eps, mu, log_sigma)
+            f_z = model.decode(z, training=True)
 
-            grads_generator_loss = generator_tape.gradient(
-                target=generator_loss, sources=model.generator.trainable_variables
-            )
-            grads_discriminator_loss = discriminator_tape.gradient(
-                target=discriminator_loss, sources=model.discriminator.trainable_variables
-            )
+            encoder_loss = tf.reduce_mean(model.encoder_loss(mu, log_sigma))
+            decoder_loss = tf.reduce_mean(model.decoder_loss(x, f_z))
+            loss = encoder_loss + decoder_loss
 
-            discriminator_opt.apply_gradients(
-                zip(grads_discriminator_loss, model.discriminator.trainable_variables)
-            )
-            generator_opt.apply_gradients(
-                zip(grads_generator_loss, model.generator.trainable_variables)
+            grads_loss = tape.gradient(
+                target=loss, sources=model.encoder.trainable_variables+model.decoder.trainable_variables)
+            opt.apply_gradients(
+                zip(grads_loss, model.encoder.trainable_variables+model.decoder.trainable_variables)
             )
 
-        return generator_loss, discriminator_loss
+        return encoder_loss, decoder_loss, loss
 
-    ckpt = tf.train.Checkpoint(generator=model.generator, discriminator=model.discriminator)
+    ckpt = tf.train.Checkpoint(encoder=model.encoder, decoder=model.decoder)
 
     steps_per_epoch = num_sets // batch_size
     train_steps = steps_per_epoch * num_epochs
 
-    generator_losses = []
-    discriminator_losses = []
-    generator_losses_epoch = []
-    discriminator_losses_epoch = []
-    x_fakes = []
+    encoder_losses = []
+    decoder_losses = []
+    losses = []
+    encoder_losses_epoch = []
+    decoder_losses_epoch = []
+    losses_epoch = []
+    fs = []
     for i in range(1, train_steps+1):
         epoch = i // steps_per_epoch
 
         idxes = np.random.choice(num_sets, batch_size, replace=False)
         x_i = features[idxes]
-        z_i = np.random.normal(size=[batch_size, latent_depth]).astype(np.float32)
+        eps_i = np.random.normal(size=[batch_size, latent_depth]).astype(np.float32)
 
-        generator_loss_i, discriminator_loss_i = train_step(x_i, z_i)
+        encoder_loss_i, decoder_loss_i, loss_i = train_step(x_i, eps_i)
         
-        generator_losses.append(generator_loss_i)
-        discriminator_losses.append(discriminator_loss_i)
+        encoder_losses.append(encoder_loss_i)
+        decoder_losses.append(decoder_loss_i)
+        losses.append(loss_i)
 
         if i % steps_per_epoch == 0:
-            x_fake = model.generator(z_i, training=False)
-            x_fake = feature_denormalize(x_fake)
+            f_eps = model.decode(eps_i, training=False)
 
-            generator_loss_epoch = np.mean(generator_losses[-steps_per_epoch:])
-            discriminator_loss_epoch = np.mean(discriminator_losses[-steps_per_epoch:])
+            encoder_loss_epoch = np.mean(encoder_losses[-steps_per_epoch:])
+            decoder_loss_epoch = np.mean(decoder_losses[-steps_per_epoch:])
+            loss_epoch = np.mean(losses[-steps_per_epoch:])
 
-            print("Epoch: %i,  Generator Loss: %f,  Discriminator Loss: %f" % \
-                (epoch, generator_loss_epoch, discriminator_loss_epoch)
+            print("Epoch: %i,  Encoder Loss: %f,  Decoder Loss: %f" % \
+                (epoch, encoder_loss_epoch, decoder_loss_epoch)
             )
 
-            generator_losses_epoch.append(generator_loss_epoch)
-            discriminator_losses_epoch.append(discriminator_loss_epoch)
+            encoder_losses_epoch.append(encoder_loss_epoch)
+            decoder_losses_epoch.append(decoder_loss_epoch)
+            losses_epoch.append(loss_epoch)
 
-            x_fakes.append(x_fake)
+            fs.append(f_eps)
             
             ckpt.save(file_prefix=model_ckpt_path)
 
             with open(model_rslt_path, "wb") as f:
-                pickle.dump((generator_losses_epoch, discriminator_losses_epoch, x_fakes), f)
+                pickle.dump((encoder_losses_epoch, decoder_losses_epoch, losses_epoch, fs), f)
 
 
 if __name__ == "__main__":
